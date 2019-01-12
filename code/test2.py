@@ -1,67 +1,136 @@
 
 
-import gluonbook as gb
+# activation={'relu', 'sigmoid', 'softrelu', 'softsign', 'tanh'}
+from mxnet import nd
+from mxnet.gluon import nn
 
-from mxnet import autograd,gluon,init,nd
-from mxnet.gluon import loss as gloss , nn,data as gdata
-import numpy as np
-import random
+class MLP(nn.Block):
 
-dirTrain='C:\\Users\\Raytine\\project\\image_train\\'
+	def __init__(self, **kwargs):
+		super(MLP, self).__init__(**kwargs)
+		self.hidden = nn.Dense(100, activation='relu')
+		self.output = nn.Dense(3)
 
-num_inputs = 7
-num_examples = 51*51*51
-
-
-f=np.loadtxt(dirTrain+"image_train_moments.txt",delimiter=' ')
-l=np.loadtxt(dirTrain+"image_train_angles.txt",delimiter=' ')
-features=nd.array(f)
-labels=nd.array(l)
-
-batch_size=51*51
-
-dataset=gdata.ArrayDataset(features,labels)
-data_iter = gdata.DataLoader(dataset,batch_size,shuffle=True)
+	def forward(self, x):
+		return self.output(self.hidden(x))
 
 
+x=nd.random.uniform(shape=(2,20))
+
+net=MLP()
+net.initialize()
+net(x)
+
+class MySequential(nn.Block):
+	def __init__(self, **kwargs):
+		super(MySequential, self).__init__(**kwargs)
+
+	def add(self, block):
+		self._children[block.name] = block
+
+	def forward(self, x):
+		for block in self._children.values():
+			x = block
+		return x
 
 
-net = nn.Sequential()
-net.add(nn.Dense(10,activation='relu'),nn.Dense(3))
-net.initialize(init.Normal(sigma=0.01))
+net = MySequential()
+net.add(nn.Dense(256, activation='relu'))
+
+net.initialize()
+net(x)
 
 
 
 
-loss=gloss.L1Loss()
-
-trainer=gluon.Trainer(net.collect_params(),'sgd',{'learning_rate':0.3})
-
-def accuracy(Y_hat,Y):
-	x=(abs(Y_hat[0]-Y[0])<0.13)
-	y=(abs(Y_hat[1]-Y[1])<0.13)
-	z=(abs(Y_hat[2]-Y[2])<0.13)
-
-	if x:
-		if y:
-			if z:
-				return 1
-	return 0
-
-def evaluate_accuracy(data_iter,net):
-	acc=0
-	for X,Y in data_iter:
-		acc+=accuracy(net(X),Y)
-
-	return acc/len(data_iter)
 
 
-num_epochs=500
-for epoch in range(1,num_epochs+1):
-	for X,Y in data_iter:
-		with autograd.record():
-			l=loss(net(X),Y)
-		l.backward()
-		trainer.step(batch_size)
-	l=loss(net(features),labels)
-	print('epoch%d,loss:%f' % (epoch,l.mean().asnumpy()))
+class FancyMLP(nn.Block):
+	def __init__(self, **kwargs):
+		super(FancyMLP, self).__init__(**kwargs)
+		self.rand_weight = self.params.get_constant(
+			'rand_weight', nd.random.uniform(shape=(20,20)))
+
+		self.dense = nn.Dense(20,activation='relu')
+
+	def forward(self, x):
+		x = self.dense(x)
+		x=nd.relu(nd.dot(x, self.rand_weight.data())+1)
+		x=self.dense(x)
+
+		while x.norm().asscalar() > 1:
+			x /=2
+
+		if x.norm().asscalar() < 0.8:
+			x *=10
+
+		return x.sum()
+
+net=FancyMLP()
+
+net.initialize()
+
+net(x)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

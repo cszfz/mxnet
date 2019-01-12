@@ -1,10 +1,94 @@
 
+
 import gluonbook as gb
-from mxnet import nd
-from mxnet.gluon import loss as gloss
 
-batch_size = 256
-train_iter, test_iter = gb.load_data_fashion_mnist(batch_size)
+from mxnet import autograd,gluon,init,nd
+from mxnet.gluon import loss as gloss , nn,data as gdata
+import numpy as np
+import random
 
-print(train_iter)
-print(test_iter)
+
+dirTrain='D:\\image\\txt\\2l\\'
+
+
+f=np.loadtxt(dirTrain+"image_train_features.txt",delimiter=' ')
+l=np.loadtxt(dirTrain+"image_train_labels.txt",delimiter=' ')
+features=nd.array(f)
+labels=nd.array(l)
+
+batch_size=500
+
+dataset=gdata.ArrayDataset(features,labels)
+data_iter = gdata.DataLoader(dataset,batch_size,shuffle=True)
+
+
+
+
+net = nn.Sequential()
+net.add(nn.Dense(100,activation='sigmoid'),nn.Dense(100,activation='sigmoid'),nn.Dense(3))
+net.initialize(init.Uniform(scale=20))
+
+
+
+
+loss=gloss.L1Loss()
+
+trainer=gluon.Trainer(net.collect_params(),'sgd',{'learning_rate':0.001})
+
+def accuracy(y_hat,y):
+	sum=0
+	yy=y_hat-y
+	yy=nd.abs(yy)
+	i=0
+	for i,val in enumerate(yy):
+		sum=sum+equal(val)
+
+	return sum/i
+
+
+def equal(y):
+	error=0.5
+	xx=(y[0]<error)
+	yy=(y[1]<error)
+	zz=(y[2]<error)
+
+	if xx:
+		if yy:
+			if zz:
+				return 1
+	return 0
+
+
+def train_ch3(net,train_iter,loss,num_epochs,batch_size,
+	params=None,lr=None,trainer=None):
+	
+	train_acc_sum1=0
+	train_acc_sum2=0
+	train_acc_sum3=0
+	for epoch in range(num_epochs):
+
+		flag=0
+		train_l_sum=0
+		train_acc_sum=0
+		for X,y in train_iter:
+			with autograd.record():
+				y_hat=net(X)
+				l=loss(y_hat,y)
+				
+			l.backward()
+			if trainer is None:
+				gb.sgd(params,lr,batch_size)
+			else:
+				trainer.step(batch_size)
+
+			train_l_sum+=l.mean().asscalar()
+			if epoch%10==0:
+				np.savetxt('y_hat'+str(flag)+'.txt',y_hat.asnumpy(),fmt='%f')
+				np.savetxt('y'+str(flag)+'.txt',y.asnumpy(),fmt='%f')
+				flag=flag+1
+			#train_acc_sum+=accuracy(y_hat,y)
+		print('epoch %d, loss %.4f'
+				% (epoch + 1, train_l_sum / len(train_iter)))
+num_epochs=5001
+
+train_ch3(net,data_iter,loss,num_epochs,batch_size,None,None,trainer)
