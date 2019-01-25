@@ -3,8 +3,8 @@ import numpy as np
 
 fiel_dir='C:\\Users\\Raytine\\mxnet\\code\\'
 
-l_train=np.loadtxt(fiel_dir+"l_train.txt",delimiter=' ')
-l_test=np.loadtxt(fiel_dir+"l_test.txt",delimiter=' ')
+l_train=np.loadtxt(fiel_dir+"2019_01_14_15_24_44l_train.txt",delimiter=' ')
+l_test=np.loadtxt(fiel_dir+"2019_01_14_15_24_44l_test.txt",delimiter=' ')
 
 l=l_train-l_test
 
